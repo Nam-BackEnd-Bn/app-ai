@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <!-- jQuery (required for toastr) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <!-- Toastr CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .start-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 10px;
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+        }
+        .stop-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 10px;
+            display: none;
+        }
+        .stop-btn:hover {
+            transform: translateY(-2px);
+        }
+        .settings-btn {
+            padding: 12px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .settings-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        .logout-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+            transform: translateY(-2px);
+        }
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 5000px;
+        }
+        th {
+            background: #34495e;
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            position: sticky;
+            top: 0;
+            white-space: nowrap;
+        }
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 11px;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-progress {
+            background: #cfe2ff;
+            color: #084298;
+        }
+        .status-completed {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+        .status-failed {
+            background: #f8d7da;
+            color: #842029;
+        }
+        .url-link {
+            color: #667eea;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .url-link:hover {
+            text-decoration: underline;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            padding: 8px 15px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .page-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .page-select-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 10px;
+        }
+        .page-select-wrapper label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        .page-select {
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 80px;
+        }
+        .page-select:hover {
+            background: #f8f9fa;
+        }
+        .page-select:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        #status {
+            margin-left: 20px;
+            font-weight: 600;
+        }
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 1000;
+            font-size: 11px;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close:hover,
+        .close:focus {
+            color: #000;
+        }
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 2px solid #ecf0f1;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Task Management - AI Image Voice Canva Instagram</h2>
+            <div class="button-group">
+                <button class="start-btn" id="startBtn" onclick="startAction()">Start</button>
+                <button class="stop-btn" id="stopBtn" onclick="stopAction()">Stop</button>
+                <button class="settings-btn" onclick="openSettings()">⚙️ Settings</button>
+                <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+                <span id="status"></span>
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Version</th>
+                        <th>Created At</th>
+                        <th>Updated At</th>
+                        <th>Sheet URL</th>
+                        <th>Sheet Name</th>
+                        <th>Sheet ID</th>
+                        <th>Row ID</th>
+                        <th>Row</th>
+                        <th>Account Social</th>
+                        <th>Type Ratio Image</th>
+                        <th>Account AI Image Info</th>
+                        <th>Account Email Image</th>
+                        <th>Account AI Image</th>
+                        <th>Channel Image</th>
+                        <th>Prompt Thumb Input</th>
+                        <th>Thumb Output URL</th>
+                        <th>Prompt Page 1 Input</th>
+                        <th>Page 1 Output URL</th>
+                        <th>Prompt Page 2 Input</th>
+                        <th>Page 2 Output URL</th>
+                        <th>Prompt Niche Page 3 Input</th>
+                        <th>Niche Page 3 Output URL</th>
+                        <th>Prompt Niche Page 4 Input</th>
+                        <th>Niche Page 4 Output URL</th>
+                        <th>Prompt Niche Page 5 Input</th>
+                        <th>Niche Page 5 Output URL</th>
+                        <th>Channel Voice</th>
+                        <th>Account AI Voice</th>
+                        <th>Account AI Voice Info</th>
+                        <th>Account Email Voice</th>
+                        <th>Prompt Voice Page 1 Input</th>
+                        <th>Voice Page 1 Output URL</th>
+                        <th>Prompt Voice Page 3456 Input</th>
+                        <th>Voice Page 3456 Output URL</th>
+                        <th>Billet Character Voice Speaker 1</th>
+                        <th>Billet Character Voice Speaker 2</th>
+                        <th>Type Post</th>
+                        <th>Title Pool</th>
+                        <th>Pool 1</th>
+                        <th>Pool 2</th>
+                        <th>Pool 3</th>
+                        <th>Text First Page 2</th>
+                        <th>Text Second Page 2</th>
+                        <th>Text Page 6</th>
+                        <th>Link Add History</th>
+                        <th>Niche Link Category</th>
+                        <th>Style Name</th>
+                        <th>Background For Page 3</th>
+                        <th>Background For Page 4</th>
+                        <th>Background For Page 5</th>
+                        <th>Background For Page 6</th>
+                        <th>Effect Audio Thumbnail</th>
+                        <th>Effect Audio Page 345</th>
+                        <th>BG Remove Background 345</th>
+                        <th>Font Text 1</th>
+                        <th>Font Text 2</th>
+                        <th>Link Canva Script</th>
+                        <th>Link Canva Video</th>
+                        <th>Link Canva Image Thumb</th>
+                        <th>Link Canva Image 1</th>
+                        <th>Link Canva Image 2</th>
+                        <th>Link Canva Image 3</th>
+                        <th>Link Canva Image 4</th>
+                        <th>Link Canva Image 5</th>
+                        <th>Note</th>
+                        <th>Status Image</th>
+                        <th>Status Voice</th>
+                        <th>Status Canva</th>
+                        <th>Created By</th>
+                        <th>Updated By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination">
+            {pagination}
+            <div class="page-select-wrapper">
+                <label for="pageSelect">Go to page:</label>
+                <select id="pageSelect" class="page-select" onchange="changePageFromSelect()">
+                    {pageSelect}
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <span class="close" onclick="closeSettings()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="itemsPerPage">Items Per Page:</label>
+                    <select id="itemsPerPage">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="autoRefresh">Auto Refresh (seconds):</label>
+                    <input type="number" id="autoRefresh" min="0" value="0" placeholder="0 = disabled">
+                </div>
+                <div class="form-group">
+                    <label for="maxBrowserPerRow">Max Browser Per Row:</label>
+                    <input type="number" id="maxBrowserPerRow" min="1" value="1" placeholder="1">
+                </div>
+                <div class="form-group">
+                    <label for="maxBrowserRun">Max Browser Run:</label>
+                    <input type="number" id="maxBrowserRun" min="1" value="1" placeholder="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configure toastr
+        if (typeof toastr !== 'undefined') {
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+        }
+        
+        var backend;
+        var backendReady = false;
+        var reloadInterval = null;
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            backend = channel.objects.backend;
+            backendReady = true;
+            // Start auto-reload after backend is ready
+            startAutoReload();
+        });
+        
+        function changePage(page) {
+            if (backendReady && backend) {
+                backend.change_page(page);
+            }
+        }
+        
+        function reloadTable() {
+            if (backendReady && backend) {
+                backend.reload_table();
+            }
+        }
+        
+        // Auto-reload table every 1 minute (60 seconds)
+        function startAutoReload() {
+            // Clear existing interval if any
+            if (reloadInterval) {
+                clearInterval(reloadInterval);
+            }
+            // Set interval to reload every 60 seconds (60000 milliseconds)
+            reloadInterval = setInterval(function() {
+                reloadTable();
+            }, 60000);
+        }
+        
+        function changePageFromSelect() {
+            var select = document.getElementById('pageSelect');
+            if (select) {
+                var page = parseInt(select.value);
+                if (page && !isNaN(page)) {
+                    changePage(page);
+                }
+            }
+        }
+        
+        function startAction() {
+            if (backendReady && backend) {
+                backend.start_action();
+                
+                // Hide Start button and show Stop button
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+                
+                // Disable logout button
+                var logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.disabled = true;
+                    logoutBtn.style.opacity = '0.6';
+                    logoutBtn.style.cursor = 'not-allowed';
+                }
+            }
+        }
+        
+        function stopAction() {
+            if (backendReady && backend) {
+                backend.stop_action();
+                
+                // Show Start button and hide Stop button
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+                
+                // Enable logout button
+                var logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.disabled = false;
+                    logoutBtn.style.opacity = '1';
+                    logoutBtn.style.cursor = 'pointer';
+                }
+            }
+        }
+        
+        // Logout Function
+        function logout() {
+            var logoutBtn = document.getElementById('logoutBtn');
+            // Prevent logout if button is disabled (action is running)
+            if (logoutBtn && logoutBtn.disabled) {
+                alert('Cannot logout while action is running. Please stop the action first.');
+                return;
+            }
+            
+            if (backendReady && backend) {
+                if (confirm('Are you sure you want to logout?')) {
+                    backend.logout();
+                }
+            }
+        }
+        
+        // Settings Modal Functions
+        function openSettings() {
+            var modal = document.getElementById('settingsModal');
+            modal.style.display = 'block';
+            // Load saved settings if any
+            loadSettings();
+        }
+        
+        function closeSettings() {
+            var modal = document.getElementById('settingsModal');
+            modal.style.display = 'none';
+        }
+        
+        function saveSettings() {
+            var settings = {
+                itemsPerPage: parseInt(document.getElementById('itemsPerPage').value) || 10,
+                autoRefresh: parseInt(document.getElementById('autoRefresh').value) || 0,
+                maxBrowserPerRow: parseInt(document.getElementById('maxBrowserPerRow').value) || 1,
+                maxBrowserRun: parseInt(document.getElementById('maxBrowserRun').value) || 1
+            };
+            
+            // Save to backend cache service only (localStorage not available in data URLs)
+            try {
+                backend.save_settings(JSON.stringify(settings));
+                
+                // Apply settings
+                applySettings(settings);
+                
+                // Close modal
+                closeSettings();
+                
+                toastr.success('Settings saved to cache successfully!');
+            } catch (error) {
+                applySettings(settings);
+                closeSettings();
+                toastr.warning('Settings applied but not saved (cache unavailable)');
+            }
+        }
+        
+        function loadSettings() {
+            var settings = null;
+            
+            // Get from backend cache only (localStorage not available in data URLs)
+            if (!backendReady || !backend) {
+                return;
+            }
+            
+            try {
+                var cachedSettings = backend.get_settings();
+                
+                // Handle Promise if returned
+                if (cachedSettings && typeof cachedSettings.then === 'function') {
+                    cachedSettings.then(function(result) {
+                        if (result && typeof result === 'string' && result !== '{}' && result !== '') {
+                            try {
+                                var settings = JSON.parse(result);
+                                applySettingsToForm(settings);
+                            } catch (e) {
+                                // Error parsing settings
+                            }
+                        }
+                    }).catch(function(error) {
+                        // Error loading settings from cache
+                    });
+                    return;
+                }
+                
+                // Handle string result directly (but not if it's "[object Promise]")
+                if (cachedSettings && typeof cachedSettings === 'string' && 
+                    cachedSettings !== '{}' && cachedSettings !== '' && 
+                    cachedSettings !== '[object Promise]' && cachedSettings !== '[object Object]') {
+                    settings = JSON.parse(cachedSettings);
+                }
+            } catch (error) {
+                // Error loading settings from cache
+            }
+            
+            // Apply loaded settings to form
+            if (settings) {
+                applySettingsToForm(settings);
+            }
+        }
+        
+        function applySettingsToForm(settings) {
+            if (settings) {
+                document.getElementById('itemsPerPage').value = settings.itemsPerPage || '10';
+                document.getElementById('autoRefresh').value = settings.autoRefresh || '0';
+                document.getElementById('maxBrowserPerRow').value = settings.maxBrowserPerRow || '1';
+                document.getElementById('maxBrowserRun').value = settings.maxBrowserRun || '1';
+            }
+        }
+        
+        function applySettings(settings) {
+            // Apply settings (would need backend support to actually change)
+            // Settings are applied silently
+        }
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            var modal = document.getElementById('settingsModal');
+            if (event.target == modal) {
+                closeSettings();
+            }
+        }
+        
+        // Load settings on page load
+        window.onload = function() {
+            var settings = null;
+            
+            // Get from backend cache only 
+            if (!backendReady || !backend) {
+                return;
+            }
+            
+            try {
+                var cachedSettings = backend.get_settings();
+                
+                // Handle Promise if returned
+                if (cachedSettings && typeof cachedSettings.then === 'function') {
+                    cachedSettings.then(function(result) {
+                        if (result && typeof result === 'string' && result !== '{}' && result !== '') {
+                            try {
+                                var settings = JSON.parse(result);
+                                applySettings(settings);
+                            } catch (e) {
+                                // Error parsing settings
+                            }
+                        }
+                    }).catch(function(error) {
+                        // Error loading settings from cache
+                    });
+                    return;
+                }
+                
+                // Handle string result directly (but not if it's "[object Promise]")
+                if (cachedSettings && typeof cachedSettings === 'string' && 
+                    cachedSettings !== '{}' && cachedSettings !== '' && 
+                    cachedSettings !== '[object Promise]' && cachedSettings !== '[object Object]') {
+                    settings = JSON.parse(cachedSettings);
+                }
+            } catch (error) {
+                // Error loading settings from cache
+            }
+            
+            // Apply loaded settings
+            if (settings) {
+                applySettings(settings);
+            }
+        }
+    </script>
+</body>
+</html>
+
