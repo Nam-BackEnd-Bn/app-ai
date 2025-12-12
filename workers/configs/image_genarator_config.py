@@ -1,5 +1,6 @@
 import random
 
+
 class ImageGeneratorConstants:
     """Constants for image generation."""
 
@@ -16,9 +17,10 @@ class ImageGeneratorConstants:
     SLEEP_AFTER_SUBMIT = random.randint(7, 10)
     SLEEP_AFTER_GENERATION_CHECK = 5
     SLEEP_BEFORE_SCROLL = 1
-    SLEEP_FOR_PREPARE_UPLOAD = 10
+    SLEEP_FOR_PREPARE_UPLOAD = random.randint(5, 10)
     SLEEP_AFTER_DELETE = 1
     MAX_GENERATION_CHECK = 10
+
     # CSS Selectors (using stable attributes instead of classes where possible)
     # Note: Some selectors may still use classes, but we prefer stable attributes like type, accept, aria-label
     TEXTAREA_CLASS = "Describe your idea or roll the dice for prompt ideas"  # May need update if this changes

@@ -6,15 +6,14 @@ in isolated processes, not in the main thread or QThread.
 """
 
 import asyncio
-from typing import List, Optional
+
 from loguru import logger
+
 from src.schemas.accounts import AccountEmail
-from workers.no_drive_services.web_page_services.gmail.gmail_login import GmailLogin
-from workers.no_drive_services.browser_services.task_execute import TaskExecute
-from workers.no_drive_services.web_page_services.image_generate.image_login import ImageLogin
-from workers.no_drive_services.web_page_services.image_generate.image_generator import ImageGenerator
-from src.schemas.task_aI_image_voice_canva_instagram import TaskAIImageVoiceCanvaInstagram
 from src.schemas.manager_image_ai_item_store import ManagerImageAIItemStore
+from src.schemas.task_aI_image_voice_canva_instagram import TaskAIImageVoiceCanvaInstagram
+from workers.no_drive_services.browser_services.task_execute import TaskExecute
+
 
 class GPMBrowserProcess:
     """
@@ -52,9 +51,6 @@ class GPMBrowserProcess:
         self.should_stop_flag = should_stop_flag
         self.manager_image_ai_item_store = manager_image_ai_item_store
         self.loop = None
-        self.login_gmail = GmailLogin()
-        self.image_login = ImageLogin()
-        self.image_generator = ImageGenerator()
 
     @staticmethod
     def run(
@@ -79,7 +75,8 @@ class GPMBrowserProcess:
             manager_image_ai_item_store: List of manager image AI item store
             should_stop_flag: Shared multiprocessing flag for stopping (optional)
         """
-        runner = GPMBrowserProcess(profile_name, position, tasks, account_email, manager_image_ai_item_store, should_stop_flag)
+        runner = GPMBrowserProcess(profile_name, position, tasks, account_email, manager_image_ai_item_store,
+                                   should_stop_flag)
         runner._run()
 
     def _run(self):
@@ -107,18 +104,19 @@ class GPMBrowserProcess:
                         return  # Ignore cancellation errors
                     elif isinstance(exception, (ConnectionRefusedError, ConnectionError, OSError)):
                         # These are common when browser is closed - log at debug level
-                        logger.debug(f"[{self.profile_name}] Background task connection error (browser closed): {exception}")
+                        logger.debug(
+                            f"[{self.profile_name}] Background task connection error (browser closed): {exception}")
                     else:
                         logger.warning(f"[{self.profile_name}] Unhandled exception in background task: {exception}")
                 else:
                     message = context.get('message', 'Unknown error')
                     logger.debug(f"[{self.profile_name}] Background task message: {message}")
-            
+
             self.loop.set_exception_handler(exception_handler)
 
             # Create the main task
             main_task = self.loop.create_task(self._launch_and_use_browser())
-            
+
             # Create a monitoring task that checks the stop flag and cancels main task if needed
             async def monitor_stop_flag():
                 """Monitor stop flag and cancel main task when flag is set."""
@@ -128,9 +126,9 @@ class GPMBrowserProcess:
                         main_task.cancel()
                         break
                     await asyncio.sleep(0.2)  # Check every 0.2 seconds
-            
+
             monitor_task = self.loop.create_task(monitor_stop_flag())
-            
+
             # Run the async browser code
             try:
                 # Run both tasks until main task completes
@@ -198,12 +196,7 @@ class GPMBrowserProcess:
             return False
 
         # Initialize TaskExecute
-        task_execute = TaskExecute(
-            tab=tab,
-            login_gmail=self.login_gmail,
-            image_login=self.image_login,
-            image_generator=self.image_generator,
-        )
+        task_execute = TaskExecute(tab=tab)
 
         # Execute each task
         for task in self.tasks:
@@ -227,7 +220,8 @@ class GPMBrowserProcess:
                     if new_tab:
                         task_execute.tab = new_tab
                         try:
-                            await task_execute.execute_work_flow(task, self.account_email, self.manager_image_ai_item_store)
+                            await task_execute.execute_work_flow(task, self.account_email,
+                                                                 self.manager_image_ai_item_store)
                             logger.info(f"[{self.profile_name}] Task {task.id} recovered after tab refresh")
                         except Exception as retry_err:
                             logger.error(f"[{self.profile_name}] Retry failed for task {task.id}: {retry_err}")
@@ -247,7 +241,7 @@ class GPMBrowserProcess:
                 client.close(self.profile_name)
             except Exception as e:
                 logger.warning(f"[{self.profile_name}] Error closing browser: {e}")
-            
+
     async def _refresh_tab(self, browser):
         """
         Reacquire a fresh tab when the current one becomes detached.
@@ -261,8 +255,7 @@ class GPMBrowserProcess:
         except Exception as e:
             logger.error(f"[{self.profile_name}] Unable to refresh tab: {e}")
             return None
-        
-    
+
     def _cleanup_loop(self):
         """Clean up the event loop and cancel pending tasks."""
         if self.loop:
@@ -281,7 +274,7 @@ class GPMBrowserProcess:
                                 results = self.loop.run_until_complete(
                                     asyncio.wait_for(
                                         asyncio.gather(*pending_tasks, return_exceptions=True),
-                                        timeout=1.0  
+                                        timeout=1.0
                                     )
                                 )
                                 # Log any exceptions from cancelled tasks to prevent "Task exception was never retrieved" warnings
@@ -291,11 +284,14 @@ class GPMBrowserProcess:
                                         if isinstance(result, asyncio.CancelledError):
                                             logger.debug(f"[{self.profile_name}] Task {i} was cancelled (expected)")
                                         elif isinstance(result, ConnectionRefusedError):
-                                            logger.debug(f"[{self.profile_name}] Task {i} connection refused (browser likely closed): {result}")
+                                            logger.debug(
+                                                f"[{self.profile_name}] Task {i} connection refused (browser likely closed): {result}")
                                         elif isinstance(result, (ConnectionError, OSError)):
-                                            logger.debug(f"[{self.profile_name}] Task {i} connection error (browser likely closed): {result}")
+                                            logger.debug(
+                                                f"[{self.profile_name}] Task {i} connection error (browser likely closed): {result}")
                                         else:
-                                            logger.warning(f"[{self.profile_name}] Task {i} raised exception during cleanup: {result}")
+                                            logger.warning(
+                                                f"[{self.profile_name}] Task {i} raised exception during cleanup: {result}")
                             except asyncio.TimeoutError:
                                 logger.warning(f"[{self.profile_name}] Timeout waiting for tasks to cancel")
                                 # Set exception handlers for remaining tasks to prevent unretrieved exceptions
@@ -336,16 +332,15 @@ class GPMBrowserProcess:
             logger.debug(f"[{self.profile_name}] Error checking task exception: {e}")
 
 
-
 # Backward compatibility: provide a function wrapper for the static method
 def _run_browser_async(
-    profile_name: str,
-    position: int,
-    tasks: list[TaskAIImageVoiceCanvaInstagram],
-    account_email: AccountEmail,
-    manager_image_ai_item_store: list[ManagerImageAIItemStore],
-    should_stop_flag=None,
-    log_queue=None,
+        profile_name: str,
+        position: int,
+        tasks: list[TaskAIImageVoiceCanvaInstagram],
+        account_email: AccountEmail,
+        manager_image_ai_item_store: list[ManagerImageAIItemStore],
+        should_stop_flag=None,
+        log_queue=None,
 ):
     """
     Run browser async code in a process (function wrapper for backward compatibility).

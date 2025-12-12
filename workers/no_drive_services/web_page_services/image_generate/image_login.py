@@ -1,19 +1,20 @@
 import asyncio
+
 import nodriver as nd
-from src.schemas.accounts import AccountEmail
 from loguru import logger
+
 
 class ImageLogin:
     def __init__(self):
         pass
 
     async def execute_image_login(
-        self,
-        tab: nd.Tab,
+            self,
+            tab: nd.Tab,
     ) -> bool:
         # Import here to avoid multiprocessing import issues on Windows
         from nodrive_gpm_package.utils import UtilActions
-        
+
         while True:
             try:
                 await UtilActions.click(
@@ -97,3 +98,5 @@ class ImageLogin:
             pass
 
         logger.info("✅ Image Login success")
+
+        await asyncio.sleep(2)

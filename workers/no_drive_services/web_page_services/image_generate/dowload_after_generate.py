@@ -2,12 +2,11 @@
 
 import asyncio
 import os
-import random
 from typing import Optional
 
 import nodriver as nd
 from loguru import logger
-from nodrive_gpm_package.utils import UtilActions, UtilDownloadFile
+from nodrive_gpm_package.utils import UtilDownloadFile
 
 
 class DownloadAfterGenerate:
@@ -52,12 +51,12 @@ class DownloadAfterGenerate:
             src_url = await self._get_generated_image_url(images_generated)
 
             if src_url:
-                break   
- 
+                break
+
         if src_url is None:
             logger.error("❌ Failed to get image URL")
             raise ValueError("Failed to get image URL")
-        
+
         return src_url
 
     def _get_file_name(self, current_page: int) -> str:
@@ -107,7 +106,7 @@ class DownloadAfterGenerate:
         try:
             div_targets = await tab.query_selector_all("div[id^='DndDescribedBy-']")
             div_target = div_targets[0] if div_targets else None
-            
+
             root_imgs = await tab.query_selector_all(
                 f'div[aria-roledescription="draggable"][aria-describedby="{div_target.attrs.get("id")}"]' if div_target else 'div[aria-roledescription="draggable"]'
             )

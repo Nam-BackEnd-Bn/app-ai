@@ -15,6 +15,7 @@ from workers.configs.image_genarator_config import ImageGeneratorConstants
 from workers.no_drive_services.web_page_services.image_generate.dowload_after_generate import DownloadAfterGenerate
 from workers.no_drive_services.web_page_services.image_generate.download_image_local import DownloadImageLocal
 from workers.no_drive_services.web_page_services.image_generate.image_click_upload import ImageClickUpload
+from workers.no_drive_services.web_page_services.image_generate.image_login import ImageLogin
 from workers.no_drive_services.web_page_services.image_generate.image_upload import ImageUpload
 
 
@@ -33,10 +34,12 @@ class ImageGenerator:
     """Handles AI image generation and downloading."""
 
     def __init__(self):
+        self.tab = None
         self.temp_download_dir = None
         self.list_image_subject = []
         self.list_image_scene = []
         self.list_image_style = []
+        self.image_login = ImageLogin()
         self.download_image_local = DownloadImageLocal(
             temp_download_dir=self.temp_download_dir,
             list_image_subject=self.list_image_subject,
@@ -67,6 +70,10 @@ class ImageGenerator:
             task_image: TaskAIImageVoiceCanvaInstagram,
             manager_image_ai_item_store: list[ManagerImageAIItemStore],
     ) -> TResultImageGenerate:
+        self.tab = tab
+
+        await self.image_login.execute_image_login(tab)
+
         # Prepare manager images
         await self.download_image_local.prepare_manager_images(manager_image_ai_item_store)
 
@@ -75,20 +82,19 @@ class ImageGenerator:
 
         # Setup generation environment
         count_upload = await self._setup_generate(
-            tab=tab,
             ratio_image=task_image.typeRatioImage,
         )
 
-        # # Generate and download images for each prompt
+        # Generate and download images for each prompt
         for idx, prompt in enumerate(list_prompt):
             logger.info(f"Processing prompt {idx + 1}/{len(list_prompt)}")
 
             await self._generate(tab=tab, prompt=prompt)
             if await self.download_after_generate.download(
-                tab=tab,
-                account_email=account_email.email,
-                current_page=idx,
-                total_inputs=count_upload,
+                    tab=tab,
+                    account_email=account_email.email,
+                    current_page=idx,
+                    total_inputs=count_upload,
             ):
                 await asyncio.sleep(self.constants.SLEEP_AFTER_GENERATION_CHECK)
 
@@ -131,51 +137,44 @@ class ImageGenerator:
 
     async def _setup_generate(
             self,
-            tab: nd.Tab,
             ratio_image: str,
     ):
-        """
-        Setup the image generation environment.
-        
-        Args:
-            tab: Browser tab instance
-            ratio_image: Aspect ratio for images
-        """
         logger.info("🔧 Setting up image generation environment")
 
         # Click "Add Images" button
-        await self.image_click_upload.click_add_images_button(tab)
+        await self.image_click_upload.click_add_images_button(self.tab)
 
         # Prepare category inputs based on available images per type
-        await self.image_click_upload.prepare_category_inputs(tab)
+        await self.image_click_upload.prepare_category_inputs(self.tab)
 
         logger.info(f'Sleep for {self.constants.SLEEP_FOR_PREPARE_UPLOAD}s before upload images')
         await asyncio.sleep(self.constants.SLEEP_FOR_PREPARE_UPLOAD)
 
         # Upload subject, scene, style  images into prepared inputs
-        count_upload = await self.image_upload.upload_images(tab)
+        count_upload = await self.image_upload.upload_images(self.tab)
 
         # Hide images panel
-        await self._click_hide_images_button(tab)
+        await self._click_hide_images_button()
 
         # # Set aspect ratio
-        await self._set_aspect_ratio(tab, ratio_image)
+        await self._set_aspect_ratio(ratio_image)
 
         logger.info("✅ Setup completed")
+
         return count_upload
 
-    async def _click_hide_images_button(self, tab: nd.Tab):
+    async def _click_hide_images_button(self):
         """Click the 'Hide Images' button."""
         logger.info("Clicking 'Hide Images' button")
         await UtilActions.click(
-            tab=tab,
+            tab=self.tab,
             parentTag="button",
             rootTag="span",
             text=self.constants.BTN_HIDE_IMAGES,
             timeout=self.constants.DEFAULT_TIMEOUT,
         )
 
-    async def _set_aspect_ratio(self, tab: nd.Tab, ratio_image: str):
+    async def _set_aspect_ratio(self, ratio_image: str):
         """
         Set the aspect ratio for image generation.
         
@@ -186,13 +185,13 @@ class ImageGenerator:
         logger.info(f"Setting aspect ratio to: {ratio_image}")
 
         # Open aspect ratio menu
-        await self._click_aspect_ratio_button(tab)
+        await self._click_aspect_ratio_button()
 
         # Select ratio
         ratio_text = self._get_ratio_text(ratio_image)
         if ratio_text:
             await UtilActions.click(
-                tab=tab,
+                tab=self.tab,
                 parentTag="button",
                 rootTag="span",
                 text=ratio_text,
@@ -200,12 +199,12 @@ class ImageGenerator:
             )
 
         # Close aspect ratio menu
-        await self._click_aspect_ratio_button(tab)
+        await self._click_aspect_ratio_button()
 
-    async def _click_aspect_ratio_button(self, tab: nd.Tab):
+    async def _click_aspect_ratio_button(self):
         """Click the aspect ratio button to toggle the menu."""
         await UtilActions.click(
-            tab=tab,
+            tab=self.tab,
             parentTag="button",
             rootTag="i",
             text=self.constants.BTN_ASPECT_RATIO_ICON,
@@ -257,22 +256,14 @@ class ImageGenerator:
             timeout=self.constants.DEFAULT_TIMEOUT,
         )
 
-        #TODO:
+        # TODO:
         # "Your selection contains more than 3 context images allowed in precise mode."
         # check if this text above show, return task fail with reason above
         # Submit prompt
         await asyncio.sleep(self.constants.SLEEP_AFTER_SUBMIT)
 
-    def _create_result(self, task_image: TaskAIImageVoiceCanvaInstagram) -> TResultImageGenerate:
-        """
-        Create the result object for image generation.
-        
-        Args:
-            task_image: Task containing image information
-            
-        Returns:
-            TResultImageGenerate result object
-        """
+    @staticmethod
+    def _create_result(task_image: TaskAIImageVoiceCanvaInstagram) -> TResultImageGenerate:
         return TResultImageGenerate(
             typeRatioImage=task_image.typeRatioImage,
             promptImageThumbOutput=task_image.thumbOutputUrl or "",

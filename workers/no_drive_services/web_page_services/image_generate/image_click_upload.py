@@ -81,4 +81,3 @@ class ImageClickUpload:
                     logger.debug(f"Added new category input for {title}")
         except Exception as e:
             logger.error(f"Error preparing category inputs: {e}")
-
