@@ -31,11 +31,12 @@ class TaskExecute:
         self.task = task
         self.images_ai = manager_image_ai_item_store
 
-        # Step 1: Generate Image in Whisk
-        await self._whisk_generate()
+        # # Step 1: Generate Image in Whisk
+        # await self._whisk_generate()
 
         # TODO: step 2 generate voice
         # TODO: step 3 generate video
+        # TODO: step 4 upload file to drive
 
     async def _whisk_generate(self, ):
         logger.info("Check in whisk")

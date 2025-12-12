@@ -96,19 +96,9 @@ class GPMBrowserProcess:
 
             # Set exception handler to catch and log unhandled exceptions from background tasks
             def exception_handler(loop, context):
-                """Handle exceptions from tasks that weren't properly handled."""
                 exception = context.get('exception')
-                if exception:
-                    # Filter out expected exceptions
-                    if isinstance(exception, asyncio.CancelledError):
-                        return  # Ignore cancellation errors
-                    elif isinstance(exception, (ConnectionRefusedError, ConnectionError, OSError)):
-                        # These are common when browser is closed - log at debug level
-                        logger.debug(
-                            f"[{self.profile_name}] Background task connection error (browser closed): {exception}")
-                    else:
-                        logger.warning(f"[{self.profile_name}] Unhandled exception in background task: {exception}")
-                else:
+                logger.error(exception)
+                if not exception:
                     message = context.get('message', 'Unknown error')
                     logger.debug(f"[{self.profile_name}] Background task message: {message}")
 
@@ -211,6 +201,7 @@ class GPMBrowserProcess:
                 await task_execute.execute_work_flow(task, self.account_email, self.manager_image_ai_item_store)
 
                 logger.info(f"[{self.profile_name}] Task {task.id} completed successfully")
+
             except Exception as e:
                 logger.error(f"[{self.profile_name}] Error executing task {task.id}: {e}")
                 # Attempt to recover from detached tab (e.g., "Not attached to an active page" / -32000)
@@ -220,27 +211,19 @@ class GPMBrowserProcess:
                     if new_tab:
                         task_execute.tab = new_tab
                         try:
-                            await task_execute.execute_work_flow(task, self.account_email,
-                                                                 self.manager_image_ai_item_store)
+                            await task_execute.execute_work_flow(
+                                task,
+                                self.account_email,
+                                self.manager_image_ai_item_store
+                            )
                             logger.info(f"[{self.profile_name}] Task {task.id} recovered after tab refresh")
                         except Exception as retry_err:
                             logger.error(f"[{self.profile_name}] Retry failed for task {task.id}: {retry_err}")
                 # Continue with next task even if one fails
 
-        # Keep browser open, checking stop flag periodically
-        try:
-            while not (self.should_stop_flag and self.should_stop_flag.value):
-                # Use shorter sleep interval for more responsive shutdown
-                await asyncio.sleep(0.5)  # Check every 0.5 seconds
-        except asyncio.CancelledError:
-            logger.info(f"[{self.profile_name}] Browser loop was cancelled")
-            raise
-        finally:
-            logger.info(f"🔒 [{self.profile_name}] Closing browser...")
-            try:
-                client.close(self.profile_name)
-            except Exception as e:
-                logger.warning(f"[{self.profile_name}] Error closing browser: {e}")
+        logger.info("All tasks are completed")
+        logger.info(f"🔒 [{self.profile_name}] Closing browser...")
+        client.close(self.profile_name)
 
     async def _refresh_tab(self, browser):
         """
@@ -264,10 +247,8 @@ class GPMBrowserProcess:
                 try:
                     pending_tasks = [task for task in asyncio.all_tasks(self.loop) if not task.done()]
                     if pending_tasks:
-                        logger.info(f"[{self.profile_name}] Cancelling {len(pending_tasks)} pending tasks")
                         for task in pending_tasks:
                             task.cancel()
-
                         # Wait for tasks to be cancelled (with shorter timeout for faster shutdown)
                         if pending_tasks:
                             try:
@@ -277,21 +258,6 @@ class GPMBrowserProcess:
                                         timeout=1.0
                                     )
                                 )
-                                # Log any exceptions from cancelled tasks to prevent "Task exception was never retrieved" warnings
-                                for i, result in enumerate(results):
-                                    if isinstance(result, Exception):
-                                        # Filter out expected exceptions (CancelledError, ConnectionRefusedError from closed browsers)
-                                        if isinstance(result, asyncio.CancelledError):
-                                            logger.debug(f"[{self.profile_name}] Task {i} was cancelled (expected)")
-                                        elif isinstance(result, ConnectionRefusedError):
-                                            logger.debug(
-                                                f"[{self.profile_name}] Task {i} connection refused (browser likely closed): {result}")
-                                        elif isinstance(result, (ConnectionError, OSError)):
-                                            logger.debug(
-                                                f"[{self.profile_name}] Task {i} connection error (browser likely closed): {result}")
-                                        else:
-                                            logger.warning(
-                                                f"[{self.profile_name}] Task {i} raised exception during cleanup: {result}")
                             except asyncio.TimeoutError:
                                 logger.warning(f"[{self.profile_name}] Timeout waiting for tasks to cancel")
                                 # Set exception handlers for remaining tasks to prevent unretrieved exceptions
@@ -303,16 +269,7 @@ class GPMBrowserProcess:
                 except Exception as e:
                     logger.warning(f"[{self.profile_name}] Error getting pending tasks: {e}")
 
-                # Exception handler is already set when loop was created, but ensure it's still active
-
-                # Stop the loop gracefully
-                try:
-                    # Stop any remaining callbacks
-                    self.loop.stop()
-                except Exception as e:
-                    logger.debug(f"[{self.profile_name}] Error stopping loop: {e}")
-
-                # Close the loop
+                self.loop.stop()
                 self.loop.close()
             except Exception as e:
                 logger.error(f"Error closing event loop for {self.profile_name}: {e}")
@@ -344,10 +301,10 @@ def _run_browser_async(
 ):
     """
     Run browser async code in a process (function wrapper for backward compatibility).
-    
+
     This function is a wrapper around GPMBrowserProcess.run() to maintain
     backward compatibility with existing code.
-    
+
     Args:
         profile_name: Name of the browser profile
         position: Position index

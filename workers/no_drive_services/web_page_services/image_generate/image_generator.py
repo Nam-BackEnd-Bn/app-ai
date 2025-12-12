@@ -70,52 +70,46 @@ class ImageGenerator:
             task_image: TaskAIImageVoiceCanvaInstagram,
             manager_image_ai_item_store: list[ManagerImageAIItemStore],
     ) -> TResultImageGenerate:
-        self.tab = tab
+        try:
+            self.tab = tab
 
-        await self.image_login.execute_image_login(tab)
+            await self.image_login.execute_image_login(tab)
 
-        # Prepare manager images
-        await self.download_image_local.prepare_manager_images(manager_image_ai_item_store)
+            # Prepare manager images
+            await self.download_image_local.prepare_manager_images(manager_image_ai_item_store)
 
-        # Prepare prompt list
-        list_prompt = self._prepare_prompt_list(task_image)
+            # Prepare prompt list
+            list_prompt = self._prepare_prompt_list(task_image)
 
-        # Setup generation environment
-        count_upload = await self._setup_generate(
-            ratio_image=task_image.typeRatioImage,
-        )
+            # Setup generation environment
+            count_upload = await self._setup_generate(
+                ratio_image=task_image.typeRatioImage,
+            )
 
-        # Generate and download images for each prompt
-        for idx, prompt in enumerate(list_prompt):
-            logger.info(f"Processing prompt {idx + 1}/{len(list_prompt)}")
+            # Generate and download images for each prompt
+            for idx, prompt in enumerate(list_prompt):
+                logger.info(f"Processing prompt {idx + 1}/{len(list_prompt)}")
 
-            await self._generate(tab=tab, prompt=prompt)
-            if await self.download_after_generate.download(
-                    tab=tab,
-                    account_email=account_email.email,
-                    current_page=idx,
-                    total_inputs=count_upload,
-            ):
-                await asyncio.sleep(self.constants.SLEEP_AFTER_GENERATION_CHECK)
+                await self._generate(tab=tab, prompt=prompt)
+                if await self.download_after_generate.download(
+                        tab=tab,
+                        account_email=account_email.email,
+                        current_page=idx,
+                        total_inputs=count_upload,
+                ):
+                    await asyncio.sleep(self.constants.SLEEP_AFTER_GENERATION_CHECK)
 
-        result = self._create_result(task_image)
+            result = self._create_result(task_image)
 
-        # Cleanup temporary downloaded images
-        self.download_image_local.cleanup_temp_directory()
+            # Cleanup temporary downloaded images
+            self.download_image_local.cleanup_temp_directory()
 
-        return result
+            return result
+        except Exception as e:
+            raise e
 
     @staticmethod
     def _prepare_prompt_list(task_image: TaskAIImageVoiceCanvaInstagram) -> List[str]:
-        """
-        Prepare the list of prompts to generate.
-        
-        Args:
-            task_image: Task containing prompts
-            
-        Returns:
-            List of prompt strings
-        """
         list_prompt = [
             task_image.promptThumbInput,
             task_image.promptPage1Input,
@@ -175,13 +169,6 @@ class ImageGenerator:
         )
 
     async def _set_aspect_ratio(self, ratio_image: str):
-        """
-        Set the aspect ratio for image generation.
-        
-        Args:
-            tab: Browser tab instance
-            ratio_image: Desired aspect ratio
-        """
         logger.info(f"Setting aspect ratio to: {ratio_image}")
 
         # Open aspect ratio menu
@@ -212,15 +199,6 @@ class ImageGenerator:
         )
 
     def _get_ratio_text(self, ratio_image: str) -> str:
-        """
-        Get the ratio text for UI selection.
-        
-        Args:
-            ratio_image: Ratio type from enum
-            
-        Returns:
-            Ratio text string
-        """
         ratio_map = {
             ETypeRatioImage.SQUARE.value: self.constants.RATIO_SQUARE,
             ETypeRatioImage.VERTICAL.value: self.constants.RATIO_VERTICAL,
@@ -229,13 +207,6 @@ class ImageGenerator:
         return ratio_map.get(ratio_image, self.constants.RATIO_SQUARE)
 
     async def _generate(self, tab: nd.Tab, prompt: str):
-        """
-        Generate an image from a prompt.
-        
-        Args:
-            tab: Browser tab instance
-            prompt: Text prompt for image generation
-        """
         logger.info(f"🎨 Generating image with prompt: {prompt[:50]}...")
 
         # Enter prompt
