@@ -6,7 +6,7 @@ from sqlalchemy import func
 from src.models.task_ai_image_voice_canva_instagram import TaskAIImageVoiceCanvaInstagram
 
 
-class TaskRepository:
+class TaskAIImageVoiceCanvaInstagramRepository:
     """Repository for Task database operations."""
     
     def __init__(self, session: Session):

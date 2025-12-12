@@ -60,57 +60,7 @@ class Worker(QObject):
             logger.info("Worker finished")
     
     def do_work(self):
-        """
-        Override this method in subclasses to implement the actual work.
-        
-        This method should check self._should_stop periodically and
-        stop gracefully if it's True.
-        
-        Example with GPM service and multiprocessing:
-        
-        def do_work(self):
-            from src.services.gpm_service import GPMService
-            
-            gpm_service = GPMService()
-            num_browsers = 4
-            
-            # Launch multiple browsers in parallel processes
-            processes = gpm_service.launch_multiple_browsers(num_browsers)
-            
-            # Monitor processes and check for stop signal
-            while processes and not self.should_stop():
-                # Remove finished processes
-                processes = [p for p in processes if p.is_alive()]
-                sleep(0.1)  # Check every 0.1 seconds
-            
-            # Stop all browsers when stop is requested
-            if self.should_stop():
-                gpm_service.stop_all_browsers()
-        """
-        while not self.should_stop():
-            print("do_work")
-            # Use shorter sleep intervals to check stop flag more frequently
-            # This allows for more responsive stopping
-            for _ in range(10):  # 10 * 0.1 = 1 second total
-                if self.should_stop():
-                    return
-                sleep(0.1)
-    
-    def _worker_task(self, task_id: int):
-        """
-        Example worker task that runs in a separate thread.
-        
-        Override this or create your own task functions for multi-threading.
-        
-        Args:
-            task_id: Identifier for this task
-        """
-        while not self.should_stop():
-            print(f"Task {task_id} working...")
-            for _ in range(10):  # Check stop flag every 0.1 seconds
-                if self.should_stop():
-                    return
-                sleep(0.1)
+        pass
     
     @pyqtSlot()
     def stop(self):

@@ -1,21 +1,21 @@
 """Task controller."""
 
 from pathlib import Path
-from src.services.task_service import TaskService
+from src.services.task_ai_image_voice_canva_instagram_service import TaskAIImageVoiceCanvaInstagramService
 
 
-class TaskController:
+class TaskAIImageVoiceCanvaInstagramController:
     """Controller for handling task-related requests."""
     
-    def __init__(self, task_service: TaskService, html_dir: Path):
+    def __init__(self, service: TaskAIImageVoiceCanvaInstagramService, html_dir: Path):
         """
-        Initialize controller with task service.
+        Initialize controller with service.
         
         Args:
-            task_service: TaskService instance
+            service: TaskAIImageVoiceCanvaInstagramService instance
             html_dir: Path to HTML templates directory
         """
-        self.task_service = task_service
+        self.service = service
         self.html_dir = html_dir
     
     def get_tasks(self, page: int = 1, per_page: int = 10) -> dict:
@@ -30,7 +30,7 @@ class TaskController:
             Dictionary with tasks and pagination info
         """
         try:
-            result = self.task_service.get_all_tasks(page, per_page)
+            result = self.service.get_all_tasks(page, per_page)
             return {
                 'success': True,
                 'data': result

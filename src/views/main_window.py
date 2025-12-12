@@ -4,27 +4,33 @@ from pathlib import Path
 from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
-from src.controllers.auth_controller import AuthController
-from src.controllers.task_controller import TaskController
-from src.controllers.settings_controller import SettingsController
-from src.controllers.action_controller import ActionController
-from src.middleware.auth_middleware import AuthMiddleware
+from src.Http.controllers import AuthController
+from src.Http.controllers.task_ai_image_voice_canva_instagram_controller import TaskAIImageVoiceCanvaInstagramController
+from src.Http.controllers.settings_controller import SettingsController
+from src.Http.controllers.action_controller import ActionController
+from src.Http.middleware.auth_middleware import AuthMiddleware
 from src.views.backend import Backend
+from utils.logger_handler import LoggerHandler
 from loguru import logger
 
 
 class MainWindow(QMainWindow):
     """Main application window (View layer)."""
     
-    def __init__(self, auth_controller: AuthController, task_controller: TaskController,
-                 settings_controller: SettingsController, action_controller: ActionController,
-                 auth_middleware: AuthMiddleware):
+    def __init__(
+        self, 
+        auth_controller: AuthController, 
+        task_ai_image_voice_canva_instagram_controller: TaskAIImageVoiceCanvaInstagramController,
+        settings_controller: SettingsController, 
+        action_controller: ActionController, 
+        auth_middleware: AuthMiddleware
+    ):
         """
         Initialize main window.
         
         Args:
             auth_controller: AuthController instance
-            task_controller: TaskController instance
+            task_controller: TaskAIImageVoiceCanvaInstagramController instance
             settings_controller: SettingsController instance
             action_controller: ActionController instance
             auth_middleware: AuthMiddleware instance
@@ -35,7 +41,7 @@ class MainWindow(QMainWindow):
         
         # Controllers
         self.auth_controller = auth_controller
-        self.task_controller = task_controller
+        self.task_ai_image_voice_canva_instagram_controller = task_ai_image_voice_canva_instagram_controller
         self.settings_controller = settings_controller
         self.action_controller = action_controller
         self.auth_middleware = auth_middleware
@@ -44,11 +50,19 @@ class MainWindow(QMainWindow):
         self.current_page = 1
         self.items_per_page = 10
         
+        # Setup logger handler (don't start yet - wait until UI is ready)
+        self.logger_handler = LoggerHandler()
+        self.logger_handler.log_message.connect(self._on_log_message)
+        
         # Connect action controller signals
         self._connect_action_signals()
         
-        # Setup UI
+        # Setup UI first
         self.setup_ui()
+        
+        # Now start logger handler and log welcome message
+        self.logger_handler.start()
+        logger.info("🚀 Application started - All logs will appear in the terminal")
     
     def setup_ui(self):
         """Setup the user interface."""
@@ -122,7 +136,7 @@ class MainWindow(QMainWindow):
         
         # Execute with exception handling
         html = self.auth_middleware.handle_exception(
-            self.task_controller.generate_table_html, self.current_page, self.items_per_page
+            self.task_ai_image_voice_canva_instagram_controller.generate_table_html, self.current_page, self.items_per_page
         )
         
         # If result is error dict, handle it
@@ -144,7 +158,7 @@ class MainWindow(QMainWindow):
         
         # Execute with exception handling
         html = self.auth_middleware.handle_exception(
-            self.task_controller.generate_table_html, self.current_page, self.items_per_page
+            self.task_ai_image_voice_canva_instagram_controller.generate_table_html, self.current_page, self.items_per_page
         )
         
         # If result is error dict, handle it
@@ -251,6 +265,7 @@ class MainWindow(QMainWindow):
         """Handle action started signal from controller."""
         try:
             # Update UI to show action is running
+            # Don't show Stop button yet - wait for browsers to open
             self.web.page().runJavaScript("""
                 // Disable logout button
                 var logoutBtn = document.getElementById('logoutBtn');
@@ -259,10 +274,16 @@ class MainWindow(QMainWindow):
                     logoutBtn.style.opacity = '0.6';
                     logoutBtn.style.cursor = 'not-allowed';
                 }
-                // Hide Start button and show Stop button
+                // Hide Start button but don't show Stop button yet (browsers still opening)
                 document.getElementById('startBtn').style.display = 'none';
-                document.getElementById('stopBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+                // Show progress bar
+                if (typeof showProgressBar === 'function') {
+                    showProgressBar();
+                }
             """)
+            # Update terminal
+            self._update_terminal("Action started - Initializing...", "info")
         except Exception as e:
             logger.error(f"Error in _on_action_started: {e}")
     
@@ -271,6 +292,11 @@ class MainWindow(QMainWindow):
         try:
             # Update UI when action thread stops - show Start button and hide Stop button
             self.web.page().runJavaScript("""
+                hideLoading();
+                // Hide progress bar
+                if (typeof hideProgressBar === 'function') {
+                    hideProgressBar();
+                }
                 // Show Start button and hide Stop button
                 document.getElementById('startBtn').style.display = 'inline-block';
                 document.getElementById('stopBtn').style.display = 'none';
@@ -282,16 +308,50 @@ class MainWindow(QMainWindow):
                     logoutBtn.style.cursor = 'pointer';
                 }
             """)
+            # Update terminal
+            self._update_terminal("Action stopped", "warning")
             logger.debug("Action thread stopped - UI updated")
         except Exception as e:
             logger.error(f"Error in _on_action_stopped: {e}")
     
+    def _update_terminal(self, message: str, log_type: str = "info"):
+        """
+        Update terminal output in the UI.
+        
+        Args:
+            message: Message to display
+            log_type: Type of log (info, success, warning, error, debug)
+        """
+        try:
+            # Check if web view is initialized
+            if not hasattr(self, 'web') or self.web is None:
+                return  # Silently skip if UI not ready yet
+            
+            # Escape single quotes and newlines for JavaScript
+            escaped_message = message.replace("'", "\\'").replace("\n", "\\n").replace("\r", "")
+            self.web.page().runJavaScript(f"""
+                if (typeof updateTerminal === 'function') {{
+                    updateTerminal('{escaped_message}', '{log_type}');
+                }}
+            """)
+        except Exception as e:
+            # Use print to avoid recursive logging
+            print(f"Error updating terminal: {e}")
+    
     def _on_action_result(self, result: dict):
         """Handle action result from controller."""
         try:
+            # Hide overlay when action completes
+            hide_overlay_js = "hideLoading();"
+            
             if result.get('success'):
                 message = result.get('message', 'Action completed successfully')
                 self.web.page().runJavaScript(f"""
+                    {hide_overlay_js}
+                    // Hide progress bar on completion
+                    if (typeof hideProgressBar === 'function') {{
+                        hideProgressBar();
+                    }}
                     if (typeof toastr !== 'undefined') {{
                         toastr.success('{message.replace("'", "\\'")}');
                     }} else {{
@@ -299,9 +359,16 @@ class MainWindow(QMainWindow):
                             '<span style="color: green;">✓ {message.replace("'", "\\'")}</span>';
                     }}
                 """)
+                # Update terminal
+                self._update_terminal(f"✓ {message}", "success")
             else:
                 message = result.get('message', 'Action failed')
                 self.web.page().runJavaScript(f"""
+                    {hide_overlay_js}
+                    // Hide progress bar on failure
+                    if (typeof hideProgressBar === 'function') {{
+                        hideProgressBar();
+                    }}
                     if (typeof toastr !== 'undefined') {{
                         toastr.error('{message.replace("'", "\\'")}');
                     }} else {{
@@ -309,10 +376,16 @@ class MainWindow(QMainWindow):
                             '<span style="color: red;">✗ {message.replace("'", "\\'")}</span>';
                     }}
                 """)
+                # Update terminal
+                self._update_terminal(f"✗ {message}", "error")
             
             # Update UI buttons - check if it's a stop action result
             if result.get('action_type') == 'stop':
                 self.web.page().runJavaScript("""
+                    // Hide progress bar
+                    if (typeof hideProgressBar === 'function') {
+                        hideProgressBar();
+                    }
                     // Show Start button and hide Stop button
                     document.getElementById('startBtn').style.display = 'inline-block';
                     document.getElementById('stopBtn').style.display = 'none';
@@ -332,6 +405,7 @@ class MainWindow(QMainWindow):
         try:
             error_msg = error_message.replace("'", "\\'")
             self.web.page().runJavaScript(f"""
+                hideLoading();
                 if (typeof toastr !== 'undefined') {{
                     toastr.error('Error: {error_msg}');
                 }} else {{
@@ -339,9 +413,15 @@ class MainWindow(QMainWindow):
                         '<span style="color: red;">✗ Error: {error_msg}</span>';
                 }}
             """)
+            # Update terminal
+            self._update_terminal(f"Error: {error_message}", "error")
             
             # Reset UI buttons on error
             self.web.page().runJavaScript("""
+                // Hide progress bar
+                if (typeof hideProgressBar === 'function') {
+                    hideProgressBar();
+                }
                 // Show Start button and hide Stop button
                 document.getElementById('startBtn').style.display = 'inline-block';
                 document.getElementById('stopBtn').style.display = 'none';
@@ -359,22 +439,66 @@ class MainWindow(QMainWindow):
     def _on_action_status(self, status_message: str):
         """Handle action status update from controller."""
         try:
-            # You can update UI with status messages here if needed
-            logger.debug(f"Action status: {status_message}")
+            # Check if browsers are opened - show Stop button when ready
+            if status_message == "BROWSERS_OPENED":
+                self.web.page().runJavaScript("""
+                    // Show Stop button now that browsers are fully opened
+                    document.getElementById('stopBtn').style.display = 'inline-block';
+                """)
+                logger.debug("Browsers opened - Stop button shown")
+                # Update terminal
+                self._update_terminal("Browsers opened - Stop button available", "success")
+            else:
+                # Update terminal with status message
+                self._update_terminal(status_message, "info")
+                # logger.debug(f"Action status: {status_message}")
         except Exception as e:
             logger.error(f"Error in _on_action_status: {e}")
     
     def _on_action_progress(self, progress: int):
         """Handle action progress update from controller."""
         try:
-            # You can update progress bar or UI here if needed
+            # Update progress bar
+            self.web.page().runJavaScript(f"""
+                if (typeof updateProgressBar === 'function') {{
+                    updateProgressBar({progress});
+                }}
+            """)
+            
+            # Hide overlay when progress reaches 100% (browsers are launching)
+            # But don't show Stop button yet - wait for BROWSERS_OPENED status
+            if progress >= 100:
+                self.web.page().runJavaScript("""
+                    hideLoading();
+                    // Don't show Stop button yet - wait for browsers to fully open
+                """)
+            
+            # Update terminal with progress
+            self._update_terminal(f"Progress: {progress}%", "info")
             logger.debug(f"Action progress: {progress}%")
         except Exception as e:
             logger.error(f"Error in _on_action_progress: {e}")
     
+    def _on_log_message(self, message: str, level: str):
+        """
+        Handle log message from logger handler.
+        
+        Args:
+            message: Log message text
+            level: Log level (info, success, warning, error, debug)
+        """
+        try:
+            self._update_terminal(message, level)
+        except Exception as e:
+            print(f"Error handling log message: {e}")
+    
     def closeEvent(self, event):
         """Handle window close event - cleanup threads via controller."""
         try:
+            # Stop logger handler
+            if hasattr(self, 'logger_handler') and self.logger_handler:
+                self.logger_handler.stop()
+            
             # Stop any running threads via controller
             # This will safely handle deleted QThread objects
             if self.action_controller:
