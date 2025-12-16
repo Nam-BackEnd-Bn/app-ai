@@ -54,7 +54,7 @@ class GPMService:
                 code2FA=account.code2FA
             )
             manager_image_ai_item_store = account.manager_image_ai_item_store
-
+            logger.info(f'Total tasks of {account_email.email}: {len(tasks)}')
             process = self.launch_browser_process(
                 profile_name,
                 i,
@@ -157,28 +157,4 @@ class GPMService:
         self._should_stop.value = False
         logger.info("✅ All browser processes stopped")
 
-    def get_running_processes(self) -> List[multiprocessing.Process]:
-        """Get list of currently running processes."""
-        # Remove finished processes and their corresponding profile names
-        running_processes = []
-        running_profiles = []
-        for i, process in enumerate(self.processes):
-            if process.is_alive():
-                running_processes.append(process)
-                if i < len(self.profile_names):
-                    running_profiles.append(self.profile_names[i])
 
-        self.processes = running_processes
-        self.profile_names = running_profiles
-        return self.processes
-
-    def wait_for_all_processes(self, timeout: Optional[float] = None):
-        """
-        Wait for all processes to finish.
-        
-        Args:
-            timeout: Maximum time to wait (None = wait indefinitely)
-        """
-        for process in self.processes:
-            if process.is_alive():
-                process.join(timeout=timeout)

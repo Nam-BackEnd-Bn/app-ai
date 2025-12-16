@@ -39,15 +39,18 @@ class TaskExecute:
         self.images_ai = manager_image_ai_item_store
 
         # Step 1: Generate Image in Whisk
-        # await self._whisk_generate()
+        await self._whisk_generate()
 
         # TODO: step 2 generate video
         await self._flow_generate()
 
         # # TODO: step 3 generate voice
-        # await self._speech_generate()
+        await self._speech_generate()
 
         # TODO: step 4 upload file to drive
+        logger.info("Start upload video to drive...")
+        await asyncio_sleep(60)
+
 
     async def _whisk_generate(self):
         logger.info("Check in whisk")

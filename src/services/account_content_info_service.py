@@ -30,6 +30,22 @@ class AccountContentInfoService:
                 code2FA="tc7y mv7u v4w6 b5lb vcrt vuv4 fovy drbv",
                 isActive=True,
                 status="Active",
+            ),
+            AccountSocial(
+                id="00000000-0000-0000-0000-000000000001",  # TODO: Change to UUID
+                createdAt=datetime.now(),
+                updatedAt=datetime.now(),
+                version=1,
+                createdBy="admin",
+                updatedBy="admin",
+                accountAI="namtong626@gmail.com",
+                model=EModelAI.GPT,
+                versionModel="gpt-4o",
+                provider="openai",
+                password="qacjjjfhu1106",
+                code2FA="tc7y mv7u v4w6 b5lb vcrt vuv4 fovy drbv",
+                isActive=True,
+                status="Active",
             )
         ]
 

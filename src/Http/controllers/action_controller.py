@@ -63,6 +63,7 @@ class ActionController(QObject):
             self.action_thread = QThread()
             accounts = self.account_content_info_service.find_account_content_info()
             tasks = self.task_ai_image_voice_canva_instagram_service.get_task_by_account_social()
+
             accounts = self.account_content_info_service.mapp_account_with_manager_image_ai_item_store(
                 accounts,
                 self.manager_image_ai_item_store_service

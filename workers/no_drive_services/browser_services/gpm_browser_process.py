@@ -36,7 +36,7 @@ class GPMBrowserProcess:
     ):
         """
         Initialize the browser process runner.
-        
+
         Args:
             profile_name: Name of the browser profile
             position: Position index
@@ -76,8 +76,14 @@ class GPMBrowserProcess:
             manager_image_ai_item_store: List of manager image AI item store
             should_stop_flag: Shared multiprocessing flag for stopping (optional)
         """
-        runner = GPMBrowserProcess(profile_name, position, tasks, account_email, manager_image_ai_item_store,
-                                   should_stop_flag)
+        runner = GPMBrowserProcess(
+            profile_name,
+            position,
+            tasks,
+            account_email,
+            manager_image_ai_item_store,
+            should_stop_flag
+        )
         runner._run()
 
     def _run(self):
