@@ -6,6 +6,7 @@ in isolated processes, not in the main thread or QThread.
 """
 
 import asyncio
+import traceback
 
 from loguru import logger
 
@@ -203,6 +204,7 @@ class GPMBrowserProcess:
                 logger.info(f"[{self.profile_name}] Task {task.id} completed successfully")
 
             except Exception as e:
+                traceback.print_exc()
                 logger.error(f"[{self.profile_name}] Error executing task {task.id}: {e}")
                 # Attempt to recover from detached tab (e.g., "Not attached to an active page" / -32000)
                 if "-32000" in str(e) or "Not attached to an active page" in str(e):

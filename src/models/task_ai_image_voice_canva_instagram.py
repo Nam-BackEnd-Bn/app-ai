@@ -1,10 +1,10 @@
 """Task AI Image Voice Canva Instagram model for database."""
 
-from sqlalchemy import Integer, String, Text, DateTime
+from sqlalchemy import Integer, String, Text, DateTime, JSON    
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import uuid
 from src.config.database import Base
 
@@ -113,6 +113,9 @@ class TaskAIImageVoiceCanvaInstagram(Base):
     createdBy: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     updatedBy: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     
+    # promptFlowVideoInput: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
+    # promptFlowThumbInput: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
+
     def __repr__(self):
         return f"<TaskAIImageVoiceCanvaInstagram(id={self.id}, sheetName='{self.sheetName}', rowID='{self.rowID}')>"
     
@@ -189,6 +192,8 @@ class TaskAIImageVoiceCanvaInstagram(Base):
             'statusVoice': self.statusVoice,
             'statusCanva': self.statusCanva,
             'createdBy': self.createdBy,
-            'updatedBy': self.updatedBy
+            'updatedBy': self.updatedBy,
+            # 'promptFlowVideoInput': self.promptFlowVideoInput,
+            # 'promptFlowThumbInput': self.promptFlowThumbInput
         }
 

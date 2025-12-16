@@ -5,6 +5,80 @@ from src.repositories.task_ai_image_voice_canva_instagram_repository import Task
 from src.models.task_ai_image_voice_canva_instagram import TaskAIImageVoiceCanvaInstagram
 from datetime import datetime
 from random import choice
+from pydantic import BaseModel
+class TaskAIImageVoiceCanvaInstagramResponse(BaseModel):
+    id: str
+    version: int
+    createdAt: datetime
+    updatedAt: Optional[datetime] = None
+    sheetUrl: Optional[str] = None
+    sheetName: Optional[str] = None
+    sheetID: Optional[str] = None
+    rowID: Optional[str] = None
+    row: Optional[str] = None
+    accountSocial: Optional[str] = None
+    typeRatioImage: Optional[str] = None
+    accountAIImageInfo: Optional[str] = None
+    accountEmailImage: Optional[str] = None
+    accountAIImage: Optional[str] = None
+    channelImage: Optional[str] = None
+    promptThumbInput: Optional[str] = None
+    thumbOutputUrl: Optional[str] = None
+    promptPage1Input: Optional[str] = None
+    page1OutputUrl: Optional[str] = None
+    promptPage2Input: Optional[str] = None
+    page2OutputUrl: Optional[str] = None
+    promptNichePage3Input: Optional[str] = None
+    nichePage3OutputUrl: Optional[str] = None
+    promptNichePage4Input: Optional[str] = None
+    nichePage4OutputUrl: Optional[str] = None
+    promptNichePage5Input: Optional[str] = None
+    nichePage5OutputUrl: Optional[str] = None
+    channelVoice: Optional[str] = None
+    accountAIVoice: Optional[str] = None
+    accountAIVoiceInfo: Optional[str] = None
+    accountEmailVoice: Optional[str] = None
+    promptVoicePage1Input: Optional[str] = None
+    voicePage1OutputUrl: Optional[str] = None
+    promptVoicePage3456Input: Optional[str] = None
+    voicePage3456OutputUrl: Optional[str] = None
+    billetCharacterVoiceSpeaker1: Optional[str] = None
+    billetCharacterVoiceSpeaker2: Optional[str] = None
+    typePost: Optional[str] = None
+    titlePool: Optional[str] = None
+    pool1: Optional[str] = None
+    pool2: Optional[str] = None
+    pool3: Optional[str] = None
+    textFirstPage2: Optional[str] = None
+    textSecondPage2: Optional[str] = None
+    textPage6: Optional[str] = None
+    linkAddHistory: Optional[str] = None
+    nicheLinkCategory: Optional[str] = None
+    styleName: Optional[str] = None
+    backgroundForPage3: Optional[str] = None
+    backgroundForPage4: Optional[str] = None
+    backgroundForPage5: Optional[str] = None
+    backgroundForPage6: Optional[str] = None
+    effectAudioThumbnail: Optional[str] = None
+    effectAudioPage345: Optional[str] = None
+    bgRemoveBackground345: Optional[str] = None
+    fontText1: Optional[str] = None
+    fontText2: Optional[str] = None
+    linkCanvaScript: Optional[str] = None
+    linkCanvaVideo: Optional[str] = None
+    linkCanvaImageThumb: Optional[str] = None
+    linkCanvaImage1: Optional[str] = None
+    linkCanvaImage2: Optional[str] = None
+    linkCanvaImage3: Optional[str] = None
+    linkCanvaImage4: Optional[str] = None
+    linkCanvaImage5: Optional[str] = None
+    note: Optional[str] = None
+    statusImage: Optional[str] = None
+    statusVoice: Optional[str] = None
+    statusCanva: Optional[str] = None
+    createdBy: Optional[str] = None
+    updatedBy: Optional[str] = None
+    promptFlowInputs: Optional[List[Dict]] = None
 
 class TaskAIImageVoiceCanvaInstagramService:
     """Service for task-related business logic."""
@@ -54,7 +128,7 @@ class TaskAIImageVoiceCanvaInstagramService:
 
     def get_task_by_account_social(self) -> Optional[List]:
         return [
-            TaskAIImageVoiceCanvaInstagram(
+            TaskAIImageVoiceCanvaInstagramResponse(
                 id="1", # TODO: Change to UUID
                 version=1,
                 sheetUrl="https://docs.google.com/spreadsheets/d/1234567890/edit#gid=0",
@@ -155,5 +229,16 @@ Speaker 1: Oh no. What did those wrinkly troublemakers do now?
                 effectAudioPage345="Effect audio page 345",
                 createdAt=datetime.now(),
                 updatedAt=datetime.now(),
+                promptFlowInputs=[
+                    {
+                        # 'video': 'A graceful contemporary dance on a minimalist stage with soft white and blue lighting. A female dancer in flowing fabric performs slow, expressive movements with spins and leaps. Camera uses slow dolly-in and side angles, shallow depth of field. Clean background, emotional mood, cinematic look, 4K, high detail, smooth slow-motion segments.',
+                        'video': '',
+                        'thumbnail': 'Children flying kites in an open field'
+                    },
+                    # {
+                    #     'video': 'A high-energy street dance performance at night in a neon-lit city. A single dancer performs sharp hip-hop and popping moves, dynamic footwork, smooth transitions. Camera starts with a wide shot, then tracks forward and circles the dancer. Realistic lighting, rain reflections on the ground, cinematic motion blur, 4K, 60fps, ultra-smooth movement.',
+                    #     'thumbnail': 'A high-energy street dance performance at night in a neon-lit city. A single dancer performs sharp hip-hop and popping moves, dynamic footwork, smooth transitions. Camera starts with a wide shot, then tracks forward and circles the dancer. Realistic lighting, rain reflections on the ground, cinematic motion blur, 4K, 60fps, ultra-smooth movement.',
+                    # },
+                ]
             )
         ]

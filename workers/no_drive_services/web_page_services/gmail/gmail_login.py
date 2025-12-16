@@ -27,30 +27,35 @@ class GmailLogin:
         if not account_email.email or not account_email.password:
             raise ValueError("Email and password are required")
 
-        await self._change_param_name(tab=tab)
+        try:
+            is_login = await self._change_param_name(tab=tab)
+            if is_login:
+                return 
 
-        # Check if account is already available on the page
-        account_clicked = await self._check_and_click_existing_account(tab=tab, account_email=account_email)
-        
-        # Only input email if account wasn't found/clicked
-        if not account_clicked:
-            # Input email
-            if not await self._input_email(tab=tab, account_email=account_email):
-                raise Exception("Failed to input email")
+            # Check if account is already available on the page
+            account_clicked = await self._check_and_click_existing_account(tab=tab, account_email=account_email)
 
-        # Input password (required regardless of whether account was clicked or email was entered)
-        if not await self._input_password(tab=tab, account_email=account_email):
-            raise Exception("Failed to input password - password may be incorrect")
+            # Only input email if account wasn't found/clicked
+            if not account_clicked:
+                # Input email
+                if not await self._input_email(tab=tab, account_email=account_email):
+                    raise Exception("Failed to input email")
 
-        # Check if 2FA is required (this may enter 2FA code if detected)
-        await self._check_2fa(tab=tab, account_email=account_email)
+            # Input password (required regardless of whether account was clicked or email was entered)
+            if not await self._input_password(tab=tab, account_email=account_email):
+                raise Exception("Failed to input password - password may be incorrect")
 
-        await self._try_another_way(tab=tab)
-        await self._google_authenticator(tab=tab)
+            # Check if 2FA is required (this may enter 2FA code if detected)
+            await self._check_2fa(tab=tab, account_email=account_email)
 
-        # Enter 2FA code
-        logger.info("Entering 2FA code...")
-        await self._enter_code_2FA(tab=tab, account_email=account_email)
+            await self._try_another_way(tab=tab)
+            await self._google_authenticator(tab=tab)
+
+            # Enter 2FA code
+            logger.info("Entering 2FA code...")
+            await self._enter_code_2FA(tab=tab, account_email=account_email)
+        except Exception as e:
+            logger.error('Error while login with gmail, keep continue')
 
     async def _change_param_name(self, tab: nd.Tab):
         """
@@ -68,13 +73,16 @@ class GmailLogin:
                 timeout=10,
             )
             logger.info("Page loaded successfully")
+            return False
         except IndexError as e:
             # Element not found - page might not be loaded or element doesn't exist
             logger.warning(f"Could not find 'Forgot email?' button - page may not be fully loaded: {e}")
             # Continue anyway - the page might still be usable
+            return True
         except Exception as e:
             logger.warning(f"Unexpected error waiting for page load: {e}")
             # Continue anyway - don't block the login flow
+            return True
 
     async def _check_and_click_existing_account(
             self,

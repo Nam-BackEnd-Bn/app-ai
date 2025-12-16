@@ -72,20 +72,24 @@ class ImageGenerator:
     ) -> TResultImageGenerate:
         try:
             self.tab = tab
-
+            logger.info("Step 1: Login image generator")
             await self.image_login.execute_image_login(tab)
 
             # Prepare manager images
+            logger.info("Step 2: Prepare manager images")
             await self.download_image_local.prepare_manager_images(manager_image_ai_item_store)
 
+            logger.info("Step 3: Prepare prompt list")
             # Prepare prompt list
             list_prompt = self._prepare_prompt_list(task_image)
 
+            logger.info("Step 4: Setup generation environment")
             # Setup generation environment
             count_upload = await self._setup_generate(
                 ratio_image=task_image.typeRatioImage,
             )
 
+            logger.info("Step 5: Generate and download images for each prompt")
             # Generate and download images for each prompt
             for idx, prompt in enumerate(list_prompt):
                 logger.info(f"Processing prompt {idx + 1}/{len(list_prompt)}")
@@ -99,11 +103,14 @@ class ImageGenerator:
                 ):
                     await asyncio.sleep(self.constants.SLEEP_AFTER_GENERATION_CHECK)
 
+            logger.info("Step 6: Create result")
             result = self._create_result(task_image)
 
             # Cleanup temporary downloaded images
+            logger.info("Step 7: Cleanup temporary downloaded images")
             self.download_image_local.cleanup_temp_directory()
 
+            logger.info("Step 8: Return result")
             return result
         except Exception as e:
             raise e
